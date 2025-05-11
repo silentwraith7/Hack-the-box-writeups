@@ -17,4 +17,4 @@ now will be using Responder to get NTLM hash   we can run responder using  �
 
 now once we get the password we can connect using evil-winRm 
 
-“evil-winrm -i 10.129.136.91 -u administrator -p badminton” 
+“evil-winrm -i 10.129.136.91 -u administrator -p [REDACTED]” 
