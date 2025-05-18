@@ -1,6 +1,6 @@
 # Planning - No Walkthrough (Active Machine)
 
-## 🔍 Initial Enumeration
+##  Initial Enumeration
 
 Trying to see all the active services using:
 
@@ -14,7 +14,7 @@ The HTTP server redirects to:
 
 Now added the `http://planning.htb/` and `10.10.11.68` to `/etc/hosts` so that it shows the site.
 
-## 🗂 Gobuster and Directory/Subdomain Discovery
+##  Gobuster and Directory/Subdomain Discovery
 
 Used `gobuster` to check for any subdomains and also any directories but nothing useful.
 
@@ -28,7 +28,7 @@ Directory fuzzing - got nothing useful.
 
 Checked online for any hints - there was a hint to keep trying subdomain fuzzing with other wordlists.
 
-## 🔄 Switching Tools - Trying FFUF
+##  Switching Tools - Trying FFUF
 
 I am going to try using `ffuf` instead of gobuster this time:
 
@@ -38,7 +38,7 @@ ffuf -w /usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt -u '
 
 Found a `grafana` subdomain 🎯
 
-## 📦 Grafana Vulnerability & Exploitation
+##  Grafana Vulnerability & Exploitation
 
 Checked the version of Grafana using `/api/health` - got response with version as `v11.0.0`
 
@@ -56,7 +56,7 @@ python3 CVE-2024-9264.py -u user -p user -c <shell-cmd> <url>
 
 Passed `id` in the `-c` and I see that I have **root access**
 
-## 🔁 Reverse Shell Setup
+##  Reverse Shell Setup
 
 Now I am going to do reverse shell.
 
@@ -88,7 +88,7 @@ We got the shell access 🎉
 
 Went through most files, couldn’t find a user flag or root flag.
 
-## 🧪 Post Exploitation - LinPEAS & Enumeration
+##  Post Exploitation - LinPEAS & Enumeration
 
 Looks like this is not it. Need to run **LinPEAS** to check.
 
@@ -107,8 +107,8 @@ Could see that we are in a **Docker container** and not on the host — containe
 In the LinPEAS report I could see all the env variables and in it I found some interesting stuff:
 
 ```env
-GF_SECURITY_ADMIN_PASSWORD=RioTecRANDEntANT!
-GF_SECURITY_ADMIN_USER=enzo
+[redacted]
+[redacted]
 ```
 
 ## 🔐 SSH Access
