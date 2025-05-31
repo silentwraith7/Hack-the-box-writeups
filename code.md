@@ -13,7 +13,7 @@ Tried subdomain fuzzing too but no subdomains were found.
 
 Added BurpSuite proxy to see the requests being sent, tried intercepting and tinkering with inputs – nothing really worked, the inputs were sanitized.
 
-So had to dig deep on how to exploit the Python editor and saw that if we raise an exception, it will print it too (had to refer a writeup).  
+So had to dig deep on how to exploit the Python editor and saw that we can print all the global variables used by printing 'globals()', it will print it too (had to refer a writeup).  
 Ran:  
 ```python
 print(globals())
