@@ -1,4 +1,4 @@
-# Planning - No Walkthrough (Active Machine)
+# Planning
 
 ##  Initial Enumeration
 
