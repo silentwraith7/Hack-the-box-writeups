@@ -1,4 +1,4 @@
-# Titanic - no walkthrough - active machine
+# Titanic - active machine
 
 ## Basic Enumeration
 
