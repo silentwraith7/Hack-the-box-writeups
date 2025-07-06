@@ -1,5 +1,5 @@
 
-# Code - Active Machine (No Walkthrough Used)
+# Code - Active Machine
 
 ## Enumeration
 
