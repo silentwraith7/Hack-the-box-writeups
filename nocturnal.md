@@ -1,4 +1,4 @@
-# Nocturnal HTB - My Walkthrough (No External Walkthroughs Used)
+# Nocturnal HTB - Active Machine
 
 ## Basic Enumeration
 
